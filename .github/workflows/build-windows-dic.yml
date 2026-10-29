@@ -1,0 +1,44 @@
+# PdfCraft-dic: builds the Windows MSI and portable zip of this fork's pt-br branch with the
+# project's own packaging script (unsigned: the fork has no signing secrets, so sign.ps1 skips).
+name: Build Windows (PdfCraft-dic)
+
+on:
+  push:
+    branches: [pt-br]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-windows-dic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install WiX v5
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: Build and package
+        shell: pwsh
+        run: ./packaging/windows/package.ps1 -Arch x64
+
+      - name: Upload installer and portable zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdfcraft-dic-windows-x64
+          path: |
+            dist/release/*.msi
+            dist/release/*.zip
+          if-no-files-found: error

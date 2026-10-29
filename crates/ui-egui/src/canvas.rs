@@ -359,6 +359,10 @@ pub struct DocView {
     /// The selection whose action bar was closed by its Copy button: the bar stays hidden
     /// until the selection changes, as it does once a markup button consumes the selection.
     actions_dismissed: Option<Selection>,
+    /// A double-click just selected a word: the selection bar opens the dictionary for it.
+    dictionary_pending: bool,
+    /// The dictionary card that is open, if any.
+    dictionary: Option<crate::dictionary_ui::Lookup>,
     /// The drag in progress started a text selection: the wheel scrolls the page during it
     /// (#721), which egui's scroll area refuses while anything is dragged.
     selection_drag: bool,
@@ -647,6 +651,8 @@ impl DocView {
             selection: None,
             all_text: false,
             actions_dismissed: None,
+            dictionary_pending: false,
+            dictionary: None,
             selection_drag: false,
             clicks: 0,
             last_press_time: 0.0,
@@ -1440,6 +1446,7 @@ fn update_selection_on_press(ui: &egui::Ui, view: &mut DocView, text: &PageText,
             && let Some((first, last)) = text.nearest(gesture.vx, gesture.vy).and_then(|anchor| click_unit(text, clicks, anchor))
         {
             view.selection = Some(Selection::run(gesture.page, first, last));
+            view.dictionary_pending = clicks == 2;
         }
     }
     if gesture.resp.drag_started() && press_here && !gesture.over_link {
@@ -1514,6 +1521,7 @@ fn finish_text_pointer_gesture(ui: &egui::Ui, view: &mut DocView, text: &PageTex
         && let Some((first, last)) = text.nearest(gesture.vx, gesture.vy).and_then(|anchor| click_unit(text, clicks, anchor))
     {
         view.selection = Some(Selection::run(gesture.page, first, last));
+        view.dictionary_pending = clicks == 2;
     } else if gesture.resp.clicked() && view.clicks < 2 && !gesture.over_link {
         let shift = ui.input(|input| input.modifiers.shift);
         match (
@@ -3068,6 +3076,12 @@ pub fn document_area(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui) {
     if unobstructed && matches!(tool, QuickTool::Select | QuickTool::ColumnSelect) {
         copy_selected |= selection_actions(ui, avail, view, info, prefs, allowed && !comments_hidden, can_copy);
     }
+    if let Some(lookup) = view.dictionary.as_mut()
+        && matches!(crate::dictionary_ui::show(ui, avail, lookup), crate::dictionary_ui::CardResult::Close)
+    {
+        view.dictionary = None;
+    }
+    crate::dictionary_ui::show_manager(ui.ctx());
 
     // Collect all main-page demand, including cached surfaces, for byte admission later.
     // Pan-settle debounce for tiled pages: each tile costs a full page interpret, so holding

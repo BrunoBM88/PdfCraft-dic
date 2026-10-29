@@ -150,6 +150,7 @@ enum SelectionAction {
     Markup(comments::CommentTool),
     Replace,
     Copy,
+    Dictionary,
 }
 
 /// Actions on an existing text selection, next to the selected words.
@@ -167,8 +168,10 @@ pub(super) fn selection_actions(
     }
     let Some(selection) = view.selection else {
         view.actions_dismissed = None;
+        view.dictionary_pending = false;
         return false;
     };
+    let double_clicked_word = std::mem::take(&mut view.dictionary_pending);
     if view.actions_dismissed == Some(selection) {
         return false;
     }
@@ -183,7 +186,14 @@ pub(super) fn selection_actions(
     if !viewport.intersects(rect) {
         return false;
     }
-    let x = rect.left().clamp(viewport.left() + 8.0, (viewport.right() - 520.0).max(viewport.left() + 8.0));
+    let word = crate::dictionary::lookup_word(&selected);
+    // A double-clicked word opens the dictionary straight away, in place of the bar.
+    if double_clicked_word && let Some(word) = word {
+        view.dictionary = Some(crate::dictionary_ui::Lookup::new(ui.ctx(), word, rect));
+        view.actions_dismissed = Some(selection);
+        return false;
+    }
+    let x = rect.left().clamp(viewport.left() + 8.0, (viewport.right() - 620.0).max(viewport.left() + 8.0));
     let y = if rect.bottom() + 48.0 < viewport.bottom() { rect.bottom() + 6.0 } else { (rect.top() - 44.0).max(viewport.top() + 6.0) };
     let mut chosen = None;
     egui::Area::new(egui::Id::unique(("text-selection-actions", view.id.0))).order(egui::Order::Foreground).fixed_pos(pos2(x, y)).show(
@@ -205,6 +215,9 @@ pub(super) fn selection_actions(
                     if ui.add_enabled(can_copy, egui::Button::new(tl!("Copy"))).clicked() {
                         chosen = Some(SelectionAction::Copy);
                     }
+                    if ui.add_enabled(word.is_some(), egui::Button::new(tl!("Dictionary"))).clicked() {
+                        chosen = Some(SelectionAction::Dictionary);
+                    }
                 });
             });
         },
@@ -214,6 +227,13 @@ pub(super) fn selection_actions(
         // Copying closes the bar but keeps the words selected, for ⌘C or a second action.
         view.actions_dismissed = Some(selection);
         return true;
+    }
+    if let SelectionAction::Dictionary = action {
+        if let Some(word) = word {
+            view.dictionary = Some(crate::dictionary_ui::Lookup::new(ui.ctx(), word, rect));
+        }
+        view.actions_dismissed = Some(selection);
+        return false;
     }
     let Some((page, quads)) = view.selection_quads(info) else { return false };
     let last = quads.last().copied().unwrap_or_default();
@@ -244,7 +264,7 @@ pub(super) fn selection_actions(
             }));
         }
         // Copy is dispatched through the app after the view borrow ends.
-        SelectionAction::Copy => {}
+        SelectionAction::Copy | SelectionAction::Dictionary => {}
     }
     false
 }

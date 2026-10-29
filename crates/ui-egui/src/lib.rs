@@ -61,6 +61,8 @@ pub use recovery::{AUTOSAVE_SECS, RecoveryMeta, RecoveryStore};
 use theme::{ThemeKind, ThemePreference};
 
 mod app;
+mod dictionary;
+mod dictionary_ui;
 mod hooks;
 mod persist;
 mod platform;

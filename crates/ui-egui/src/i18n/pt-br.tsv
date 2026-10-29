@@ -2842,3 +2842,51 @@ theme	Appearance	Aparência
 	Rotate the selected pages clockwise	Girar as páginas selecionadas no sentido horário
 	Extract the selected pages…	Extrair as páginas selecionadas…
 	Delete the selected pages	Excluir as páginas selecionadas
+
+# Bookmarks from text styles, page properties, tab order, print scale
+	1 line	1 linha
+	{n} lines	{n} linhas
+	Level {n}	Nível {n}
+	{font}, {size} pt	{font}, {size} pt
+	New bookmarks from text styles	Novos marcadores a partir de estilos de texto
+	New bookmarks from text styles…	Novos marcadores a partir de estilos de texto…
+	Every line set in the style chosen for a level becomes a bookmark of that level, under a new first bookmark.	Cada linha no estilo escolhido para um nível vira um marcador desse nível, abaixo de um novo marcador inicial.
+	This document has no text to make bookmarks from.	Este documento não tem texto para criar marcadores.
+	Custom scale	Escala personalizada
+	Page Properties	Propriedades da página
+	Tab Order	Ordem de tabulação
+	Unspecified	Não especificada
+	Use Column Order	Usar ordem das colunas
+	Use Document Structure	Usar estrutura do documento
+	Use Row Order	Usar ordem das linhas
+	Window	Janela
+	bold	negrito
+	italic	itálico
+
+# Dictionary and glossary (PdfCraft-dic)
+	Dictionary	Dicionário
+	My glossary	Meu glossário
+	Looking up…	Buscando…
+	No definition found in Wiktionary. Try Dicio.	Significado não encontrado no Wikcionário. Tente no Dicio.
+	Couldn't reach the dictionary. Check the connection or try Dicio.	Não foi possível acessar o dicionário. Verifique a conexão ou tente no Dicio.
+	Source: Wiktionary	Fonte: Wikcionário
+	Save to glossary	Salvar no glossário
+	Open in Dicio	Abrir no Dicio
+	Term	Termo
+	Meaning	Significado
+	Write the meaning in your own words…	Escreva o significado com as suas palavras…
+	Couldn't save the glossary.	Não foi possível salvar o glossário.
+	Fill in the term and the meaning.	Preencha o termo e o significado.
+	This term is already in your glossary. Edit it instead.	Este termo já está no seu glossário. Edite-o.
+	My glossary…	Meu glossário…
+	Search term or meaning	Buscar termo ou significado
+	New term	Novo termo
+	Import…	Importar…
+	saved on this computer only; export now and then as a backup.	fica salvo só neste computador; exporte de vez em quando como backup.
+	Your glossary is empty. Double-click a word in a PDF and choose Save to glossary.	Seu glossário está vazio. Clique duas vezes numa palavra do PDF e escolha Salvar no glossário.
+	No terms match the search.	Nenhum termo encontrado.
+	Couldn't write the file.	Não foi possível gravar o arquivo.
+	This file isn't a valid glossary.	Este arquivo não é um glossário válido.
+@plural	{n} term|{n} terms	{n} termo|{n} termos
+@plural	{n} term exported.|{n} terms exported.	{n} termo exportado.|{n} termos exportados.
+@plural	{n} term imported.|{n} terms imported.	{n} termo importado.|{n} termos importados.

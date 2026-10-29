@@ -423,7 +423,9 @@ fn app_creator<'a>(
         {
             app.motion.source = Some(motion::source());
         }
-        app.set_startup_update_check(true);
+        // PdfCraft-dic: no check at start. The official updater would replace this build with
+        // the upstream release, losing the dictionary; Help ▸ Check for updates opens this fork's releases.
+        app.set_startup_update_check(false);
         app.printer_source = Some(pdfcraft_ui_egui::system_printers());
         app.os_key_store_ids = cfg!(any(target_os = "macos", target_os = "windows"));
         #[cfg(target_os = "macos")]
