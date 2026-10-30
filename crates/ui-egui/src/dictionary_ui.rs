@@ -19,8 +19,9 @@ pub(crate) struct Lookup {
     word_rect: Rect,
     definition: Arc<Mutex<Definition>>,
     draft: Option<Draft>,
-    /// Opened this frame: the click that opened it doesn't count as a click elsewhere.
-    fresh: bool,
+    /// The press that opened the card is still going on: a double-click opens the card on its
+    /// second press, and that click's release must not count as a click elsewhere.
+    opening: bool,
     /// My glossary was opened from the card, which then makes way for it.
     closing: bool,
 }
@@ -36,7 +37,7 @@ struct Draft {
 impl Lookup {
     pub(crate) fn new(ctx: &egui::Context, word: String, word_rect: Rect) -> Self {
         let definition = dictionary::definition(ctx, &word);
-        Self { word, word_rect, definition, draft: None, fresh: true, closing: false }
+        Self { word, word_rect, definition, draft: None, opening: true, closing: false }
     }
 }
 
@@ -72,7 +73,11 @@ pub(crate) fn show(ui: &mut egui::Ui, viewport: Rect, lookup: &mut Lookup) -> Ca
             }
         });
     });
-    let clicked_elsewhere = !std::mem::take(&mut lookup.fresh) && area.response.clicked_elsewhere();
+    // Armed once no button is down and none was released this frame.
+    if lookup.opening && !ui.input(|i| i.pointer.any_down() || i.pointer.any_released()) {
+        lookup.opening = false;
+    }
+    let clicked_elsewhere = !lookup.opening && area.response.clicked_elsewhere();
     if close || lookup.closing || clicked_elsewhere || ui.input(|i| i.key_pressed(egui::Key::Escape)) {
         // Escape while typing in the form only leaves the form.
         if lookup.draft.is_some() && !close && ui.input(|i| i.key_pressed(egui::Key::Escape)) {
@@ -370,4 +375,62 @@ fn plural(n: usize, one: &str, other: &str) -> String {
 /// "1 term" / "3 terms".
 fn terms(n: usize) -> String {
     plural(n, "{n} term", "{n} terms")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lookup() -> Lookup {
+        Lookup {
+            word: "preclusão".into(),
+            word_rect: Rect::from_min_size(pos2(100.0, 100.0), egui::vec2(60.0, 14.0)),
+            definition: Arc::new(Mutex::new(Definition::NotFound)),
+            draft: None,
+            opening: true,
+            closing: false,
+        }
+    }
+
+    fn button(pressed: bool, at: egui::Pos2) -> egui::Event {
+        egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE }
+    }
+
+    /// One frame with `events`; what the card asked for.
+    fn frame(ctx: &egui::Context, lookup: &mut Lookup, events: Vec<egui::Event>) -> bool {
+        let screen = Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1000.0, 800.0));
+        let input = egui::RawInput { screen_rect: Some(screen), events, ..Default::default() };
+        let mut closed = false;
+        let mut output = ctx.run_ui(input, |ui| {
+            closed = matches!(show(ui, screen, lookup), CardResult::Close);
+        });
+        // No renderer here: the font atlas upload is dropped, as a backend would after uploading.
+        output.textures_delta.clear();
+        closed
+    }
+
+    #[test]
+    fn the_release_of_the_opening_double_click_keeps_the_card_open() {
+        let ctx = egui::Context::default();
+        let mut card = lookup();
+        let word = pos2(120.0, 105.0);
+        // The card opens on the second press; that press is still down in its first frame.
+        assert!(!frame(&ctx, &mut card, vec![egui::Event::PointerMoved(word), button(true, word)]));
+        // The release, in a later frame, belongs to the double-click, not to a click elsewhere.
+        assert!(!frame(&ctx, &mut card, vec![button(false, word)]));
+        assert!(!frame(&ctx, &mut card, vec![]));
+        // A real click elsewhere afterwards closes it.
+        let away = pos2(900.0, 700.0);
+        assert!(!frame(&ctx, &mut card, vec![egui::Event::PointerMoved(away), button(true, away)]));
+        assert!(frame(&ctx, &mut card, vec![button(false, away)]));
+    }
+
+    #[test]
+    fn escape_closes_the_card() {
+        let ctx = egui::Context::default();
+        let mut card = lookup();
+        assert!(!frame(&ctx, &mut card, vec![]));
+        let esc = egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE };
+        assert!(frame(&ctx, &mut card, vec![esc]));
+    }
 }
