@@ -21,6 +21,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The interface translations live in storytold/craft-i18n since PdfCraft 0.19; the build
+      # embeds them from the commit pinned in craft-i18n.rev (without them it is English only).
+      - name: Read the craft-i18n pin
+        id: i18n
+        shell: bash
+        run: echo "rev=$(tr -d '[:space:]' < craft-i18n.rev)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          repository: storytold/craft-i18n
+          ref: ${{ steps.i18n.outputs.rev }}
+          path: craft-i18n
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -32,7 +45,11 @@ jobs:
 
       - name: Build and package
         shell: pwsh
-        run: ./packaging/windows/package.ps1 -Arch x64
+        env:
+          CRAFT_I18N_REQUIRED: "1"
+        run: |
+          $env:CRAFT_I18N_DIR = Join-Path $PWD 'craft-i18n'
+          ./packaging/windows/package.ps1 -Arch x64
 
       - name: Upload installer and portable zip
         uses: actions/upload-artifact@v4
